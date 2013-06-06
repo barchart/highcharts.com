@@ -3418,6 +3418,10 @@ SVGRenderer.prototype = {
 			}
 		};
 
+		label.getState = function (state) {
+			return curState;
+		};
+
 		return label
 			.on('click', function () {
 				callback.call(label);
@@ -15418,7 +15422,8 @@ var ScatterSeries = extendClass(Series, {
 
 	drawTracker: ColumnSeries.prototype.drawTracker,
 	
-	setTooltipPoints: noop
+	// Disabled 4/25/13 Ticket #5769
+	// setTooltipPoints: noop
 });
 seriesTypes.scatter = ScatterSeries;
 
@@ -18585,17 +18590,17 @@ RangeSelector.prototype = {
 		}
 
 		// normalize the pressed button whenever a new range is selected
-		addEvent(chart, 'load', function () {
-			addEvent(chart.xAxis[0], 'afterSetExtremes', function () {
-				if (this.fixedRange !== this.max - this.min) {
-					if (buttons[rangeSelector.selected] && !chart.renderer.forExport) {
-						buttons[rangeSelector.selected].setState(0);
-					}
-					rangeSelector.selected = null;
-				}
-				this.fixedRange = null;
-			});
-		});
+		// addEvent(chart, 'load', function () {
+		// 	addEvent(chart.xAxis[0], 'afterSetExtremes', function () {
+		// 		if (this.fixedRange !== this.max - this.min) {
+		// 			if (buttons[rangeSelector.selected] && !chart.renderer.forExport) {
+		// 				buttons[rangeSelector.selected].setState(0);
+		// 			}
+		// 			rangeSelector.selected = null;
+		// 		}
+		// 		this.fixedRange = null;
+		// 	});
+		// });
 	},
 	
 	/**

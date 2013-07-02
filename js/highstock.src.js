@@ -12660,7 +12660,8 @@ Series.prototype = {
 				userOptions._colorIndex = counters.color;
 				colorIndex = counters.color++;
 			}
-			color = defaultColors[colorIndex];
+
+			color = typeof this.options.colors !== 'undefined' ? this.options.colors[colorIndex] : defaultColors[colorIndex];
 		}
 		
 		this.color = color;

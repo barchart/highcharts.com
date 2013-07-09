@@ -6,7 +6,7 @@ var
 defaultLabelOptions = {
 	enabled: true,
 	// rotation: 0,
-	align: 'center',
+	// align: 'center',
 	x: 0,
 	y: 15,
 	/*formatter: function () {
@@ -152,9 +152,10 @@ defaultOptions = {
 				events: {}
 			},
 			dataLabels: merge(defaultLabelOptions, {
+				align: 'center',
 				enabled: false,
 				formatter: function () {
-					return numberFormat(this.y, -1);
+					return this.y === null ? '' : numberFormat(this.y, -1);
 				},
 				verticalAlign: 'bottom', // above singular point
 				y: 0

@@ -150,6 +150,8 @@ RangeSelector.prototype = {
 			buttons[i].setState(2);
 		}
 
+		chart.fixedRange = range;
+
 		// update the chart
 		if (!baseAxis) { // axis not yet instanciated
 			baseXAxisOptions = chart.options.xAxis;
@@ -240,13 +242,12 @@ RangeSelector.prototype = {
 		// normalize the pressed button whenever a new range is selected
 		addEvent(chart, 'load', function () {
 			addEvent(chart.xAxis[0], 'afterSetExtremes', function () {
-				if (this.fixedRange !== this.max - this.min) {
+				if (chart.fixedRange !== this.max - this.min) {
 					if (buttons[rangeSelector.selected] && !chart.renderer.forExport) {
 						buttons[rangeSelector.selected].setState(0);
 					}
-					rangeSelector.selected = null;
+					rangeSelector.selected = chart.fixedRange = null;
 				}
-				this.fixedRange = null;
 			});
 		});
 	},
@@ -259,7 +260,7 @@ RangeSelector.prototype = {
 	setInputValue: function (name, time) {
 		var options = this.chart.options.rangeSelector;
 
-		if (time) {
+		if (defined(time)) {
 			this[name + 'Input'].HCTime = time;
 		}
 		
@@ -355,7 +356,7 @@ RangeSelector.prototype = {
 		// handle changes in the input boxes
 		input.onchange = function () {
 			var inputValue = input.value,
-				value = Date.parse(inputValue),
+				value = (options.inputDateParser || Date.parse)(inputValue), // docs: dateParser for inputDateFormat (http://jsfiddle.net/highcharts/G7azG/)
 				extremes = chart.xAxis[0].getExtremes();
 
 			// If the value isn't parsed directly to a value by the browser's Date.parse method,
@@ -395,12 +396,13 @@ RangeSelector.prototype = {
 	 * @param {Number} max X axis maximum
 	 */
 	render: function (min, max) {
+
 		var rangeSelector = this,
 			chart = rangeSelector.chart,
 			renderer = chart.renderer,
 			container = chart.container,
 			chartOptions = chart.options,
-			navButtonOptions = chartOptions.exporting && chart.options.navigation.buttonOptions, 
+			navButtonOptions = chartOptions.exporting && chartOptions.navigation && chartOptions.navigation.buttonOptions, 
 			options = chartOptions.rangeSelector,
 			buttons = rangeSelector.buttons,
 			lang = defaultOptions.lang,

@@ -3418,10 +3418,6 @@ SVGRenderer.prototype = {
 			}
 		};
 
-		label.getState = function (state) {
-			return curState;
-		};
-
 		return label
 			.on('click', function () {
 				callback.call(label);
@@ -12660,8 +12656,7 @@ Series.prototype = {
 				userOptions._colorIndex = counters.color;
 				colorIndex = counters.color++;
 			}
-
-			color = typeof this.options.colors !== 'undefined' ? this.options.colors[colorIndex] : defaultColors[colorIndex];
+			color = defaultColors[colorIndex];
 		}
 		
 		this.color = color;
@@ -15423,8 +15418,7 @@ var ScatterSeries = extendClass(Series, {
 
 	drawTracker: ColumnSeries.prototype.drawTracker,
 	
-	// Disabled 4/25/13 Ticket #5769
-	// setTooltipPoints: noop
+	setTooltipPoints: noop
 });
 seriesTypes.scatter = ScatterSeries;
 

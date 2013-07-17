@@ -8862,7 +8862,7 @@ Tooltip.prototype = {
 					if (axis.isLog) { // #1671
 						val = log2lin(val);
 					}
-					if (series.modifyValue) { // #1205
+					if (series.modifyValue && !axis.isXAxis) { // #1205
 						val = series.modifyValue(val);
 					}
 
@@ -13418,6 +13418,12 @@ Series.prototype = {
 		if (series.options.onSeries) {
 			onSeries = series.chart.get(series.options.onSeries);
 			return onSeries.getExtremes();
+		}
+
+		// handle comparison series
+		if (series.modifyValue) {
+			dataMax = series.modifyValue(dataMax);
+			dataMin = series.modifyValue(dataMin);
 		}
 
 		if (!series.cropped) {

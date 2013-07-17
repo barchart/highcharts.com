@@ -3326,7 +3326,8 @@ SVGRenderer.prototype = {
 
 						// check width and apply soft breaks
 						if (width) {
-							var words = span.replace(/([^\^])-/g, '$1- ').split(' '), // #1273
+							// var words = span.replace(/([^\^])-/g, '$1- ').split(' '), // #1273
+							var words = span.split(' '),
 								tooLong,
 								actualWidth,
 								rest = [];
@@ -3458,6 +3459,10 @@ SVGRenderer.prototype = {
 				label.attr(pressedState)
 					.css(pressedStyle);
 			}
+		};
+
+		label.getState = function () {
+			return curState;
 		};
 
 		return label
@@ -12752,7 +12757,7 @@ Series.prototype = {
 				userOptions._colorIndex = counters.color;
 				colorIndex = counters.color++;
 			}
-			color = defaultColors[colorIndex];
+			color = typeof this.options.colors !== 'undefined' ? this.options.colors[colorIndex] : defaultColors[colorIndex];
 		}
 		
 		this.color = color;
@@ -15717,9 +15722,9 @@ var ScatterSeries = extendClass(Series, {
 	noSharedTooltip: true,
 	trackerGroups: ['markerGroup'],
 
-	drawTracker: ColumnSeries.prototype.drawTracker,
+	drawTracker: ColumnSeries.prototype.drawTracker
 	
-	setTooltipPoints: noop
+	// setTooltipPoints: noop
 });
 seriesTypes.scatter = ScatterSeries;
 

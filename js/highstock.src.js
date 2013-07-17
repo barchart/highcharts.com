@@ -8862,7 +8862,7 @@ Tooltip.prototype = {
 					if (axis.isLog) { // #1671
 						val = log2lin(val);
 					}
-					if (series.modifyValue) { // #1205
+					if (series.modifyValue && !axis.isXAxis) { // #1205
 						val = series.modifyValue(val);
 					}
 
@@ -13420,6 +13420,12 @@ Series.prototype = {
 			return onSeries.getExtremes();
 		}
 
+		// handle comparison series
+		if (series.modifyValue) {
+			dataMax = series.modifyValue(dataMax);
+			dataMin = series.modifyValue(dataMin);
+		}
+
 		if (!series.cropped) {
 			croppedData = series.cropData(xData, yData, xExtremes.min, xExtremes.max);
 			dataMax = croppedData.dataMax;
@@ -13505,15 +13511,22 @@ Series.prototype = {
 				
 			}
 
+			// general hook, used for Highstock compare mode
+			if (hasModifyValue) {
+				yValue = series.modifyValue(yValue, point);
+
+				if (series.type === 'ohlc') {
+					yBottom = series.modifyValue(yBottom);
+
+					// Calculate percent change for all data points within point object
+					series.modifyValue( [ point.open, point.high, point.low, point.close ], point);
+				}
+			}
+
 			// Set translated yBottom or remove it
 			point.yBottom = defined(yBottom) ? 
 				yAxis.translate(yBottom, 0, 1, 0, 1) :
 				null;
-			
-			// general hook, used for Highstock compare mode
-			if (hasModifyValue) {
-				yValue = series.modifyValue(yValue, point);
-			}
 
 			// Set the the plotY value, reset it for redraws
 			point.plotY = (typeof yValue === 'number' && yValue !== Infinity) ? 
@@ -17169,18 +17182,23 @@ var OHLCSeries = extendClass(seriesTypes.column, {
 	 */
 	translate: function () {
 		var series = this,
-			yAxis = series.yAxis;
+			yAxis = series.yAxis,
+			open,
+			close;
 
 		seriesTypes.column.prototype.translate.apply(series);
 
 		// do the translation
 		each(series.points, function (point) {
+			open = ( series.modifyValue ) ? series.modifyValue(point.open) : point.open;
+			close = ( series.modifyValue ) ? series.modifyValue(point.close) : point.close;
+
 			// the graphics
-			if (point.open !== null) {
-				point.plotOpen = yAxis.translate(point.open, 0, 1, 0, 1);
+			if (open !== null) {
+				point.plotOpen = yAxis.translate(open, 0, 1, 0, 1);
 			}
-			if (point.close !== null) {
-				point.plotClose = yAxis.translate(point.close, 0, 1, 0, 1);
+			if (close !== null) {
+				point.plotClose = yAxis.translate(close, 0, 1, 0, 1);
 			}
 
 		});
@@ -17193,6 +17211,7 @@ var OHLCSeries = extendClass(seriesTypes.column, {
 		var series = this,
 			points = series.points,
 			chart = series.chart,
+			yAxis = series.yAxis,
 			pointAttr,
 			plotOpen,
 			plotClose,
@@ -19580,16 +19599,37 @@ seriesProto.setCompare = function (compare) {
 
 	// Set or unset the modifyValue method
 	this.modifyValue = (compare === 'value' || compare === 'percent') ? function (value, point) {
-		var compareValue = this.compareValue;
+		var compareValue = this.compareValue,
+			return_values = [];
 		
-		// get the modified value
-		value = compare === 'value' ? 
-			value - compareValue : // compare value
-			value = 100 * (value / compareValue) - 100; // compare percent
+		if (this.type === 'ohlc') {
+			if (isArray(value)) {
+				for (var i=0; i < value.length; i++) {
+					return_values.push( 100 * ( value[i] / compareValue ) - 100 );
+				}
+			} else {
+				value = 100 * ( value / compareValue ) - 100;
+			}
+		} else {
+			// get the modified value
+			value = compare === 'value' ? 
+				value - compareValue : // compare value
+				value = 100 * (value / compareValue) - 100; // compare percent
+		}
+
 			
 		// record for tooltip etc.
 		if (point) {
-			point.change = value;
+			if ( this.type === 'ohlc' && return_values.length ) {
+				point.change = {	
+					open : return_values[0],
+					high : return_values[1],
+					low 	: return_values[2],
+					close 	: return_values[3]
+				};
+			} else {				
+				point.change = value;
+			}
 		}
 		
 		return value;
@@ -19625,8 +19665,8 @@ seriesProto.processData = function () {
 		
 		// find the first value for comparison
 		for (; i < length; i++) {
-			if (typeof processedYData[i] === NUMBER && processedXData[i] >= series.xAxis.min) {
-				series.compareValue = processedYData[i];
+			if (processedXData[i] >= series.xAxis.min) {
+				series.compareValue = typeof processedYData[i] === NUMBER ? processedYData[i] : processedYData[i][3] ;
 				break;
 			}
 		}

@@ -6235,7 +6235,8 @@ PlotLineOrBand.prototype = {
 					.attr({
 						align: optionsLabel.textAlign || optionsLabel.align,
 						rotation: optionsLabel.rotation,
-						zIndex: zIndex
+						zIndex: zIndex,
+						class : optionsLabel.class || 'plot_line_label'
 					})
 					.css(optionsLabel.style)
 					.add();

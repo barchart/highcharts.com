@@ -19056,16 +19056,23 @@ RangeSelector.prototype = {
 		}
 
 		// normalize the pressed button whenever a new range is selected
-		addEvent(chart, 'load', function () {
-			addEvent(chart.xAxis[0], 'afterSetExtremes', function () {
-				if (chart.fixedRange !== this.max - this.min) {
-					if (buttons[rangeSelector.selected] && !chart.renderer.forExport) {
-						buttons[rangeSelector.selected].setState(0);
-					}
-					rangeSelector.selected = chart.fixedRange = null;
-				}
-			});
-		});
+
+		// Barchart forked edit
+			// This feature is being removed. Expected behavior is that the button will 
+			// appear selected until the zoom is explicitly changed.
+			// The following callback is fired whenever a new range is applied to the chart,
+			// which occurs on intial load and subsequent updates
+
+		// addEvent(chart, 'load', function () {
+		// 	addEvent(chart.xAxis[0], 'afterSetExtremes', function () {
+		// 		if (chart.fixedRange !== this.max - this.min) {
+		// 			if (buttons[rangeSelector.selected] && !chart.renderer.forExport) {
+		// 				buttons[rangeSelector.selected].setState(0);
+		// 			}
+		// 			rangeSelector.selected = chart.fixedRange = null;
+		// 		}
+		// 	});
+		// });
 	},
 	
 	/**

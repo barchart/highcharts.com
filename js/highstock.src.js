@@ -19659,11 +19659,10 @@ seriesProto.processData = function () {
 		processedXData,
 		processedYData,
 		length;
-	
 	// call base method
 	seriesProcessData.apply(this, arguments);
 
-	if (series.xAxis && series.processedYData) { // not pies
+	if (series.xAxis && series.processedYData && this.type !== 'flags') { // not pies
 		
 		// local variables
 		processedXData = series.processedXData;

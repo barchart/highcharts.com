@@ -18848,7 +18848,7 @@ extend(defaultOptions, {
 	}
 });
 defaultOptions.lang = merge(defaultOptions.lang, {
-	rangeSelectorZoom: 'Zoom',
+	rangeSelectorZoom: '',
 	rangeSelectorFrom: 'From',
 	rangeSelectorTo: 'To'
 });

@@ -18907,10 +18907,14 @@ RangeSelector.prototype = {
 			},
 			timeName;
 
-		if (dataMin === null || dataMax === null || // chart has no data, base series is removed
-				i === rangeSelector.selected) { // same button is clicked twice
-			return;
-		}
+		// Barchart forked edit
+			// Client-side logic handles validation of frequency/interval, which conflates with the below
+			// If validation would fail, Highcharts would set the incorrect button as selected
+
+		// if (dataMin === null || dataMax === null || // chart has no data, base series is removed
+		// 		i === rangeSelector.selected) { // same button is clicked twice
+		// 	return;
+		// }
 
 		if (fixedTimes[type]) {
 			range = fixedTimes[type] * count;

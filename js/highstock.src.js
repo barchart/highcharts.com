@@ -11649,7 +11649,7 @@ Chart.prototype = {
 					.add();
 			} else {
 				plotBorder.animate(
-					plotBorder.crisp(null, plotLeft, plotTop, plotWidth, plotHeight)
+					plotBorder.crisp(null, plotLeft, plotTop, plotWidth + plotBorderMargin, plotHeight)
 				);
 			}
 		}

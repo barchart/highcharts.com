@@ -11567,6 +11567,7 @@ Chart.prototype = {
 			plotBackgroundColor = optionsChart.plotBackgroundColor,
 			plotBackgroundImage = optionsChart.plotBackgroundImage,
 			plotBorderWidth = optionsChart.plotBorderWidth || 0,
+			plotBorderMargin = optionsChart.plotBorderMargin || 0,
 			mgn,
 			bgAttr,
 			plotLeft = chart.plotLeft,
@@ -11639,7 +11640,7 @@ Chart.prototype = {
 		// Plot area border
 		if (plotBorderWidth) {
 			if (!plotBorder) {
-				chart.plotBorder = renderer.rect(plotLeft, plotTop, plotWidth, plotHeight, 0, plotBorderWidth)
+				chart.plotBorder = renderer.rect(plotLeft, plotTop, plotWidth + plotBorderMargin, plotHeight, 0, plotBorderWidth)
 					.attr({
 						stroke: optionsChart.plotBorderColor,
 						'stroke-width': plotBorderWidth,

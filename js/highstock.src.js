@@ -6962,7 +6962,7 @@ Axis.prototype = {
 	 * Translate from axis value to pixel position on the chart, or back
 	 *
 	 */
-	translate: function (val, backwards, cvsCoord, old, handleLog, pointPlacement) {
+	translate: function (val, backwards, cvsCoord, old, handleLog, pointPlacement, postTranslate) {
 		var axis = this,
 			axisLength = axis.len,
 			sign = 1,
@@ -6971,7 +6971,7 @@ Axis.prototype = {
 			localMin = old ? axis.oldMin : axis.min,
 			returnValue,
 			minPixelPadding = axis.minPixelPadding,
-			postTranslate = (axis.options.ordinal || (axis.isLog && handleLog)) && axis.lin2val;
+			postTranslate = defined(postTranslate) ? postTranslate : (axis.options.ordinal || (axis.isLog && handleLog)) && axis.lin2val;
 
 		if (!localA) {
 			localA = axis.transA;
@@ -7021,8 +7021,8 @@ Axis.prototype = {
 	 * @param {Boolean} paneCoordinates Whether to return the pixel coordinate relative to the chart
 	 *        or just the axis/pane itself.
 	 */
-	toPixels: function (value, paneCoordinates) {
-		return this.translate(value, false, !this.horiz, null, true) + (paneCoordinates ? 0 : this.pos);
+	toPixels: function (value, paneCoordinates, postTranslate) {
+		return this.translate(value, false, !this.horiz, null, true, '', postTranslate) + (paneCoordinates ? 0 : this.pos);
 	},
 
 	/*

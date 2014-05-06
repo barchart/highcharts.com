@@ -4096,6 +4096,14 @@ SVGRenderer.prototype = {
 		// Use the HTML specific .css method
 		wrapper.css = wrapper.htmlCss;
 
+		wrapper.hide = function() {
+			wrapper.css( {display : 'none'} );
+		}
+ 
+		wrapper.show = function() {
+			wrapper.css( {display : 'inline'} );
+		}
+
 		// This is specific for HTML within SVG
 		if (renderer.isSVG) {
 			wrapper.add = function (svgGroupWrapper) {
@@ -6152,9 +6160,21 @@ PlotLineOrBand.prototype = {
 			value = log2lin(value);
 		}
 
+		// if percent change chart
+		if ( axis.series[0].modifyValue ) {
+			series_index = options.series ? options.series : 0;
+
+			compareValue = axis.series[series_index].firstCompare;
+
+			value = 100 * ( value / compareValue ) - 100;
+
+			options.label.text = Math.round(value * 100) / 100 + '%';
+		}
+
 		// plot line
 		if (width) {
 			path = axis.getPlotLinePath(value, width);
+
 			attribs = {
 				stroke: color,
 				'stroke-width': width
@@ -6189,7 +6209,8 @@ PlotLineOrBand.prototype = {
 			if (path) {
 				svgElem.animate({
 					d: path
-				}, null, svgElem.onGetPath);
+				}, null, svgElem.onGetPath)
+				svgElem.show();
 			} else {
 				svgElem.hide();
 				svgElem.onGetPath = function () {
@@ -19714,6 +19735,9 @@ seriesProto.processData = function () {
 		for (; i < length; i++) {
 			if (processedXData[i] >= series.xAxis.min) {
 				series.compareValue = typeof processedYData[i] === NUMBER ? processedYData[i] : processedYData[i][3] ;
+				if ( !series.firstCompare ) {
+					series.firstCompare = series.compareValue;
+				}
 				break;
 			}
 		}

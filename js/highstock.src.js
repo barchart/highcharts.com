@@ -17213,6 +17213,7 @@ var OHLCSeries = extendClass(seriesTypes.column, {
 			points = series.points,
 			chart = series.chart,
 			yAxis = series.yAxis,
+			options = series.options,
 			pointAttr,
 			plotOpen,
 			plotClose,
@@ -17220,11 +17221,21 @@ var OHLCSeries = extendClass(seriesTypes.column, {
 			halfWidth,
 			path,
 			graphic,
-			crispX;
+			crispX,
+			min,
+			max;
 
 
-		each(points, function (point) {
+		each(points, function (point, i) {
 			if (point.plotY !== UNDEFINED) {
+
+				if ( point.low === series.dataMin ) {
+					min = point;
+				}
+
+				if ( point.high === series.dataMax ) {
+					max = point;
+				}
 
 				graphic = point.graphic;
 				pointAttr = point.pointAttr[point.selected ? 'selected' : ''];
@@ -17282,6 +17293,31 @@ var OHLCSeries = extendClass(seriesTypes.column, {
 
 		});
 
+		if ( min ) {
+			if ( series.minGraphic ) {
+				series.minGraphic.destroy();
+			}
+
+			series.minGraphic = chart.renderer.image( options.arc_down, 
+				min.plotX - 5,
+				min.yBottom,
+				10,
+				10
+			).add(series.group);
+		}
+
+		if ( max ) {
+			if ( series.maxGraphic ) {
+				series.maxGraphic.destroy();
+			}
+
+			series.maxGraphic = chart.renderer.image( options.arc_up, 
+				max.plotX - 5,
+				max.plotY - 10,
+				10,
+				10
+			).add(series.group);
+		}
 	},
 
 	/**

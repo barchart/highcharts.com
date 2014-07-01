@@ -7853,7 +7853,7 @@ Axis.prototype = {
 		this.width = width = pick(options.width, chart.plotWidth - offsetLeft + offsetRight);
 		this.height = height = pick(options.height, chart.plotHeight);
 		this.bottom = chart.chartHeight - height - top;
-		this.right = chart.chartWidth - width - left;
+		this.right = chart.chartWidth - chart.options.chart.plotBorderMargin - width - left;
 
 		// Direction agnostic properties
 		this.len = mathMax(horiz ? width : height, 0); // mathMax fixes #905
@@ -11232,6 +11232,8 @@ Chart.prototype = {
 		chart.getChartSize();
 		chartWidth = chart.chartWidth;
 		chartHeight = chart.chartHeight;
+
+		chartWidth += chart.options.chart.plotBorderMargin || 0;
 
 		// create the inner container
 		chart.container = container = createElement(DIV, {

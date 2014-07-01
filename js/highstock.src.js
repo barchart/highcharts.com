@@ -6160,15 +6160,46 @@ PlotLineOrBand.prototype = {
 			value = log2lin(value);
 		}
 
+		// The plotLine should be updated to the last data point of the series
+		if ( options.update ) {
+			var yData = axis.series[0].processedYData;
+
+			// The last point is usually off to the right of the chart
+			last = yData[yData.length - 2];
+
+			if ( last ) {
+				// OHLC like chart
+				if ( last.length === 4 ) {
+					if ( last[3] ) {
+						options.label.text = last[3];
+						value = last[3];
+					}
+				// Line/Area chart
+				} else {
+					options.label.text = last;
+					value = last;
+				}
+
+				// Update HTML label element if present
+				if ( label ) {
+					label.element.innerHTML = Pane.decimal_to_string( value );
+				}
+			}
+		}
+
 		// if percent change chart
 		if ( axis.series[0].modifyValue ) {
 			series_index = options.series ? options.series : 0;
 
-			compareValue = axis.series[series_index].firstCompare;
+			compareValue = axis.series[series_index].compareValue;
 
 			value = 100 * ( value / compareValue ) - 100;
 
 			options.label.text = Math.round(value * 100) / 100 + '%';
+
+			if ( label ) {
+				label.element.innerHTML = options.label.text;
+			}
 		}
 
 		// plot line
@@ -13444,16 +13475,16 @@ Series.prototype = {
 			return onSeries.getExtremes();
 		}
 
-		// handle comparison series
-		if (series.modifyValue) {
-			dataMax = series.modifyValue(dataMax);
-			dataMin = series.modifyValue(dataMin);
-		}
-
 		if (!series.cropped) {
 			croppedData = series.cropData(xData, yData, xExtremes.min, xExtremes.max);
 			dataMax = croppedData.dataMax;
 			dataMin = croppedData.dataMin;
+		}
+
+		// handle comparison series
+		if (series.modifyValue) {
+			dataMax = series.modifyValue(dataMax);
+			dataMin = series.modifyValue(dataMin);
 		}
 
 		return {
@@ -19737,9 +19768,6 @@ seriesProto.processData = function () {
 		for (; i < length; i++) {
 			if (processedXData[i] >= series.xAxis.min) {
 				series.compareValue = typeof processedYData[i] === NUMBER ? processedYData[i] : processedYData[i][3] ;
-				if ( !series.firstCompare ) {
-					series.firstCompare = series.compareValue;
-				}
 				break;
 			}
 		}

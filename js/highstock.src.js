@@ -6881,9 +6881,9 @@ Axis.prototype = {
 			multi,
 			ret,
 			formatOption = axis.options.labels.format,
-			
 			// make sure the same symbol is added for all labels on a linear axis
-			numericSymbolDetector = axis.isLog ? value : axis.tickInterval;
+			numericSymbolDetector = axis.isLog ? value : axis.tickInterval,
+			precision = this.truncate ? 2 : -1;
 
 		if (formatOption) {
 			ret = format(formatOption, this);
@@ -6901,7 +6901,7 @@ Axis.prototype = {
 			while (i-- && ret === UNDEFINED) {
 				multi = Math.pow(1000, i + 1);
 				if (numericSymbolDetector >= multi && numericSymbols[i] !== null) {
-					ret = numberFormat(value / multi, -1) + numericSymbols[i];
+					ret = numberFormat(value / multi, precision) + numericSymbols[i];
 				}
 			}
 		}
@@ -8565,6 +8565,22 @@ Tooltip.prototype = {
 			.hide()
 			.add();
 
+		// Create opposite label as well
+		if ( options.crosshairs.length === 2 ) {
+			this.yLabel = chart.renderer.label('', 0, 0, options.shape, null, null, options.useHTML, null, 'tooltip')
+				.attr({
+					padding: padding,
+					fill: options.backgroundColor,
+					'stroke-width': borderWidth,
+					r: options.borderRadius,
+					zIndex: 8
+				})
+				.css(style)
+				.css({ padding: 0 }) // Remove it from VML, the padding is applied as an attribute instead (#1117)
+				.hide()
+				.add();
+		}
+
 		// When using canVG the shadow shows up as a gray circle
 		// even if the tooltip is hidden.
 		if (!useCanVG) {
@@ -8589,6 +8605,10 @@ Tooltip.prototype = {
 		if (this.label) {
 			this.label = this.label.destroy();
 		}
+		if ( this.yLabel ) {
+			this.yLabel = this.yLabel.destroy();
+		}
+
 		clearTimeout(this.hideTimer);
 		clearTimeout(this.tooltipTimeout);
 	},
@@ -8600,7 +8620,7 @@ Tooltip.prototype = {
 	 * @param {Number} y
 	 * @private
 	 */
-	move: function (x, y, anchorX, anchorY) {
+	move: function (x, y, anchorX, anchorY, x2, y2) {
 		var tooltip = this,
 			now = tooltip.now,
 			animate = tooltip.options.animation !== false && !tooltip.isHidden;
@@ -8616,7 +8636,10 @@ Tooltip.prototype = {
 		// move to the intermediate value
 		tooltip.label.attr(now);
 
-		
+		if ( tooltip.yLabel ) {
+			tooltip.yLabel.attr({x:x2,y:y2});
+		}
+
 		// run on next tick of the mouse tracker
 		if (animate && (mathAbs(x - now.x) > 1 || mathAbs(y - now.y) > 1)) {
 		
@@ -8627,7 +8650,7 @@ Tooltip.prototype = {
 			this.tooltipTimeout = setTimeout(function () {
 				// The interval function may still be running during destroy, so check that the chart is really there before calling.
 				if (tooltip) {
-					tooltip.move(x, y, anchorX, anchorY);
+					tooltip.move(x, y, anchorX, anchorY, x2, y2);
 				}
 			}, 32);
 			
@@ -8647,6 +8670,11 @@ Tooltip.prototype = {
 
 			this.hideTimer = setTimeout(function () {
 				tooltip.label.fadeOut();
+
+				if ( tooltip.yLabel ) {
+					tooltip.yLabel.fadeOut();
+				}
+
 				tooltip.isHidden = true;
 			}, pick(this.options.hideDelay, 500));
 
@@ -8808,6 +8836,7 @@ Tooltip.prototype = {
 			chart = tooltip.chart,
 			label = tooltip.label,
 			options = tooltip.options,
+			allPoints = point,
 			x,
 			y,
 			show,
@@ -8877,6 +8906,11 @@ Tooltip.prototype = {
 			if (tooltip.isHidden) {
 				stop(label);
 				label.attr('opacity', 1).show();
+
+				if ( tooltip.yLabel ) {
+					stop(tooltip.yLabel);
+					tooltip.yLabel.attr('opacity', 1).show();
+				}
 			}
 
 			// update text
@@ -8904,13 +8938,46 @@ Tooltip.prototype = {
 				attribs,
 				axis,
 				val,
-				series;
+				series,
+				index = 0,
+				chartHeight = 40;
+
+			for (var j = 0; j < allPoints.length; j++) {
+				var series = allPoints[j].series;
+
+				if ( series.options.study_type === 'overlay' ) {
+					continue;
+				}
+
+				chartHeight += series.yAxis.height;
+
+				if ( y <= chartHeight ) {
+					index = j;
+					break;
+				}
+
+				chartHeight += 50;
+			};
 
 			while (i--) {
-				series = point.series;
+				series = allPoints[index].series;
+
 				axis = series[i ? 'yAxis' : 'xAxis'];
 				if (crosshairsOptions[i] && axis) {
-					val = i ? pick(point.stackY, point.y) : point.x; // #814
+					val = i ? axis.toValue(y + chart.plotTop) : point.x; // #814
+
+					if ( i ) {
+						if ( series.index === 0 || series.userOptions.format ) {
+							text = Pane.decimal_to_string( axis.toValue(y + chart.plotTop) )
+						} else {
+							text = axis.defaultLabelFormatter.call( {axis:axis, value: val, truncate: true} );
+						}
+
+						tooltip.yLabel.attr({
+							text: "<b>"  + text + "</b>"
+						});
+					}
+
 					if (axis.isLog) { // #1671
 						val = log2lin(val);
 					}
@@ -8967,7 +9034,9 @@ Tooltip.prototype = {
 			mathRound(pos.x), 
 			mathRound(pos.y), 
 			point.plotX + chart.plotLeft, 
-			point.plotY + chart.plotTop
+			point.plotY + chart.plotTop,
+			pos.x2,
+			pos.y2
 		);
 	}
 };
@@ -9118,7 +9187,8 @@ Pointer.prototype = {
 				}
 			}
 			// refresh the tooltip if necessary
-			if (points.length && (points[0].clientX !== pointer.hoverX)) {
+			// Always fire refresh if crosshairs is on
+			if (points.length && (points[0].clientX !== pointer.hoverX || tooltip.yLabel )) {
 				tooltip.refresh(points, e);
 				pointer.hoverX = points[0].clientX;
 			}

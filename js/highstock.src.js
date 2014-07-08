@@ -9667,10 +9667,6 @@ Pointer.prototype = {
 		// normalize
 		e = this.normalize(e);
 
-		// #295
-		e.returnValue = false;
-		
-		
 		if (chart.mouseIsDown === 'mousedown') {
 			this.drag(e);
 		} 
@@ -13667,7 +13663,8 @@ Series.prototype = {
 			point.category = categories && categories[point.x] !== UNDEFINED ?
 				categories[point.x] : point.x;
 
-
+			// Add index to retrieve next/previous point easily
+			point.index = i;
 		}
 
 		// now that we have the cropped data, build the segments

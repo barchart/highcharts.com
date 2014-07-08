@@ -203,6 +203,8 @@ extend(Chart.prototype, {
 			sourceHeight,
 			cssWidth,
 			cssHeight,
+			text,
+			lastPoint,
 			options = merge(chart.options, additionalOptions); // copy the options and add extra options
 
 		// IE compatibility hack for generating SVG content that it doesn't really understand
@@ -243,6 +245,8 @@ extend(Chart.prototype, {
 			height: sourceHeight
 		});
 		options.exporting.enabled = false; // hide buttons in print
+
+		chartTop = 35;
 		
 		// prepare for replicating the chart
 		options.series = [];
@@ -253,10 +257,16 @@ extend(Chart.prototype, {
 				visible: serie.visible
 			});
 
+			if ( serie.userOptions.comparison_series || serie.userOptions.study_type === 'overlay' ) {
+				chartTop += 20;
+			}
+
 			if (!seriesOptions.isInternal) { // used for the navigator series that has its own option set
 				options.series.push(seriesOptions);
 			}
 		});
+
+		options.yAxis[0].top = chartTop;
 
 		// generate the chart copy
 		chartCopy = new Highcharts.Chart(options, chart.callback);
@@ -270,18 +280,102 @@ extend(Chart.prototype, {
 					userMax = extremes.userMax;
 
 				if (userMin !== UNDEFINED || userMax !== UNDEFINED) {
-					axisCopy.setExtremes(userMin, userMax, true, false);
+					axisCopy.setExtremes(userMin, userMax, true, false, {trigger:"export_chart"});
 				}
 			});
+		});
+
+		// Add main series text
+
+		// Find last data point
+		lastPoint = this.getLastPoint( chart.series[0] );
+		
+		if ( ['line', 'area'].indexOf( chart.series[0].type ) !== -1 ) {
+			text = chart.series[0].name + ' ' + lastPoint.y;
+		} else {
+			text =  chart.series[0].name + ' O: ' + lastPoint.open + ' H: ' + lastPoint.high + ' L: ' + lastPoint.low + ' C: ' + lastPoint.close;
+		}
+
+		chartCopy.renderer.text(text, 25, 30).attr({zIndex:3}).add();
+
+		seriesMap = {};
+		comparsionCount = 0;
+
+		// Add each series object to chart
+		each(chart.series, function (serie) {
+			if ( serie.name === 'Navigator' || typeof serie.userOptions.yAxis === 'undefined' ) {
+				return false;
+			}
+
+			// Comparison series does not require parameters
+			if ( serie.userOptions.comparison_series === 'true' ) {
+				comparsionCount += 1;
+
+				lastPoint = chartCopy.getLastPoint( serie );
+
+				if ( ['line', 'area'].indexOf( serie.type ) !== -1 ) {
+					text = serie.name + ' ' + lastPoint.y;
+				} else {
+					text =  serie.name + ' O: ' + lastPoint.open + ' H: ' + lastPoint.high + ' L: ' + lastPoint.low + ' C: ' + lastPoint.close;
+				}
+
+				chartCopy.renderer.text(text, 25, (30 + (20 * comparsionCount))).attr({zIndex:3}).add();
+
+				return false;
+			}
+
+			seriesMap[serie.userOptions.yAxis] = typeof seriesMap[serie.userOptions.yAxis] !== 'undefined' ? seriesMap[serie.userOptions.yAxis] + 1 : 0;
+
+			if ( serie.options.type === 'arearange' ) {
+				lastPoint = serie.options.data[serie.options.data.length-1];
+			} else {
+				lastPoint = serie.data[serie.data.length-1];
+			}
+
+			yTop = serie.userOptions.yAxis > 0 ? chart.yAxis[0].height : 55;
+
+			params = Pane.get_parameters( serie.userOptions.parameters );
+			parameters = params === '' ? ' ' : ' (' + params + ') ';
+
+			pointValue = (typeof lastPoint.high !== 'undefined' && typeof lastPoint.low !== 'undefined') ? Pane.dec2string(lastPoint.high) + ' (U) ' + Pane.dec2string(lastPoint.low) + '(L)' : Pane.dec2string(lastPoint.y);
+
+			text = serie.name + ' ' + parameters + ' ' + pointValue;
+
+			var new_y = yTop + (150 * serie.userOptions.yAxis) + (seriesMap[serie.userOptions.yAxis] * 17) + (20 * comparsionCount);
+
+			chartCopy.renderer.text( text, 25, new_y )
+				.attr({
+					fill : serie.color,
+					zIndex : 3
+				})
+				.add();
 		});
 
 		// get the SVG from the container's innerHTML
 		svg = chartCopy.container.innerHTML;
 
+		var tools = ToolsManager.get_all();
+
+		if ( tools.length > 0 ) {
+			tool_svg = $('tool-svg').innerHTML;
+
+			// wrap tools svg inside group that accounts for margin
+			tool_group = '<g transform="translate(14,100)">';
+			// tool_group = '<g transform="translate(0,100)">';
+			// tool_group = '<g>';
+
+			svg = svg.replace('</svg>', tool_group + tool_svg + '</g></svg>');
+		}
+
 		// free up memory
 		options = null;
 		chartCopy.destroy();
 		discardElement(sandbox);
+
+		// Remove destroyed chart
+		Highcharts.charts.clean();
+		// Decrement chart length
+		Highcharts.charts.length -= 1;
 
 		// sanitize
 		svg = svg
@@ -321,6 +415,20 @@ extend(Chart.prototype, {
 			.replace(/&quot;/g, "'");
 
 		return svg;
+	},
+
+	getLastPoint : function(series) {
+		for (var i = series.data.length - 1; i >= 0; i--) {
+			if ( ['line','area'].indexOf( series.type ) === -1 ){
+				if ( series.data[i].open !== null ) {
+					return series.data[i];
+				}
+			} else {
+				if ( series.data[i].y !== null ) {
+					return series.data[i];
+				}
+			}
+		};
 	},
 
 	/**
@@ -387,6 +495,9 @@ extend(Chart.prototype, {
 
 		// pull out the chart
 		body.appendChild(container);
+
+		$('tool-svg').setStyle('top', Paper.canvas_top_margin);
+		$('tool-svg').setStyle('left', Paper.canvas_left_margin);
 
 		// print
 		win.focus(); // #1510

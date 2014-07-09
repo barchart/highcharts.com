@@ -19415,7 +19415,8 @@ RangeSelector.prototype = {
 						buttonLeft,
 						chart.plotTop - 25,
 						function () {
-							rangeSelector.clickButton(i, rangeOptions);
+							var redraw = typeof rangeOptions.redraw !== 'undefined' ? rangeOptions.redraw : true;
+							rangeSelector.clickButton(i, rangeOptions, redraw);
 							rangeSelector.isActive = true;
 						},
 						buttonTheme,

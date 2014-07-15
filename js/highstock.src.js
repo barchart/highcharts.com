@@ -9748,12 +9748,10 @@ Pointer.prototype = {
 				extend(e, this.getCoordinates(e));
 
 				// fire a click event in the chart
-				if (chart.isInsidePlot(e.chartX - plotLeft - chart.options.chart.plotBorderMargin, e.chartY - plotTop)) {
+				if (chart.isInsidePlot(e.chartX - plotLeft, e.chartY - plotTop)) {
 					fireEvent(chart, 'click', e);
 				}
 			}
-
-
 		}
 	},
 

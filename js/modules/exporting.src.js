@@ -279,7 +279,7 @@ extend(Chart.prototype, {
 					userMin = extremes.userMin,
 					userMax = extremes.userMax;
 
-				if (userMin !== UNDEFINED || userMax !== UNDEFINED) {
+				if ( axisCopy && (userMin !== UNDEFINED || userMax !== UNDEFINED)) {
 					axisCopy.setExtremes(userMin, userMax, true, false, {trigger:"export_chart"});
 				}
 			});

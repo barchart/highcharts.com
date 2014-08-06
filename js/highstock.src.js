@@ -17489,6 +17489,8 @@ var CandlestickSeries = extendClass(OHLCSeries, {
 		var series = this,  //state = series.state,
 			points = series.points,
 			chart = series.chart,
+			width = chart.plotBox.width,
+			i = 0,
 			pointAttr,
 			plotOpen,
 			plotClose,
@@ -17501,7 +17503,6 @@ var CandlestickSeries = extendClass(OHLCSeries, {
 			graphic,
 			path,
 			halfWidth;
-
 
 		each(points, function (point) {
 
@@ -17536,6 +17537,13 @@ var CandlestickSeries = extendClass(OHLCSeries, {
 					'L',
 					crispX - halfWidth, bottomBox
 				];
+
+				// Last bar may render off the chart
+				if ( i === points.length - 1 && crispX + halfWidth === width - 0.5 ) {
+					path[7] = crispX + halfWidth - 1;
+					path[10] = crispX + halfWidth - 1;
+				}
+
 				if (hasTopWhisker) {
 					path.push(
 						'M',
@@ -17559,6 +17567,8 @@ var CandlestickSeries = extendClass(OHLCSeries, {
 				path.push(
 					'Z'
 				);
+
+				i++;
 
 				if (graphic) {
 					graphic.animate({ d: path });

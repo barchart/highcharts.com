@@ -496,6 +496,13 @@ extend(Chart.prototype, {
 		// pull out the chart
 		body.appendChild(container);
 
+		// For USCharts append quoteboard to top of printed chart
+		var div = $$('.contract_specs');
+
+		if ( div.length ) {
+			body.appendChild( div[0].setStyle('display', 'inline') );
+		}
+
 		$('tool-svg').setStyle('top', Paper.canvas_top_margin);
 		$('tool-svg').setStyle('left', Paper.canvas_left_margin);
 

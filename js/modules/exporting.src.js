@@ -493,6 +493,13 @@ extend(Chart.prototype, {
 			}
 		});
 
+		// For USCharts prepend contract info
+		var title = $$('.title');
+
+		if ( title.length ) {
+			body.appendChild( title[0].setStyle('display', 'inline') );
+		}
+
 		// pull out the chart
 		body.appendChild(container);
 

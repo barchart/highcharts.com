@@ -18543,9 +18543,28 @@ Scroller.prototype = {
 						left = chartX - navigatorLeft - range / 2;
 					} else { // click on scrollbar
 						if (chartX < navigatorLeft) { // click left scrollbar button
-							left = zoomedMin - mathMin(10, range);
+							leftValue = baseXAxis.userMin - baseXAxis.pointRange;
+							rightValue = baseXAxis.userMax - baseXAxis.pointRange;
+							// Daily chart
+							if ( baseXAxis.pointRange === 86400000 ) {
+								var day = new Date(baseXAxis.userMin).getDay();
+								if ( day === 0 ) {
+									leftValue -= 2 * baseXAxis.pointRange;
+								} else if ( day === 6 ) {
+									leftValue -= baseXAxis.pointRange;
+								}
+							}
 						} else if (chartX > scrollerLeft + scrollerWidth - scrollbarHeight) {
-							left = zoomedMin + mathMin(10, range);
+							leftValue = baseXAxis.userMin + baseXAxis.pointRange;
+							rightValue = baseXAxis.userMax + baseXAxis.pointRange;
+							// If Daily Chart
+							if ( baseXAxis.pointRange === 86400000 ) {
+								var day = new Date(baseXAxis.userMax).getDay();
+								// If Friday
+								if ( day === 5 ) {
+									rightValue += 2 * baseXAxis.pointRange;
+								}
+							}
 						} else {
 							// click on scrollbar track, shift the scrollbar by one range
 							left = chartX < navigatorLeft + zoomedMin ? // on the left
@@ -18563,10 +18582,13 @@ Scroller.prototype = {
 						if (!baseXAxis.ordinalPositions) {
 							chart.fixedRange = baseXAxis.max - baseXAxis.min;
 						}
-						leftValue = xAxis.translate(left, true);
+						if ( typeof rightValue === 'undefined' ) {
+							leftValue = xAxis.translate( left, true);
+							rightValue = xAxis.translate( left + range, true);
+						}
 						baseXAxis.setExtremes(
 							leftValue,
-							chart.fixedRange ? leftValue + chart.fixedRange : xAxis.translate(left + range, true),
+							chart.fixedRange ? leftValue + chart.fixedRange : rightValue,
 							true,
 							false,
 							{ trigger: 'navigator' }

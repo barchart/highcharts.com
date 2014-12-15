@@ -17564,9 +17564,9 @@ var CandlestickSeries = extendClass(OHLCSeries, {
 						mathRound(point.yBottom)
 					);
 				}
-				path.push(
-					'Z'
-				);
+				// path.push(
+				// 	'Z'
+				// );
 
 				i++;
 

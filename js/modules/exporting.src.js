@@ -510,8 +510,10 @@ extend(Chart.prototype, {
 			body.appendChild( div[0].setStyle('display', 'inline') );
 		}
 
-		$('tool-svg').setStyle('top', Paper.get().canvas_top_margin);
-		$('tool-svg').setStyle('left', Paper.get().canvas_left_margin);
+		if ( $('tool-svg') ) {
+			$('tool-svg').setStyle('top', Paper.get().canvas_top_margin);
+			$('tool-svg').setStyle('left', Paper.get().canvas_left_margin);
+		}
 
 		// print
 		win.focus(); // #1510

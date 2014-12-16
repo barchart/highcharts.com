@@ -357,12 +357,14 @@ extend(Chart.prototype, {
 		var tools = ToolsManager.get_all();
 
 		if ( tools.length > 0 ) {
-			tool_svg = $('tool-svg').innerHTML;
-
-			// wrap tools svg inside group that accounts for margin
-			tool_group = '<g transform="translate(14,100)">';
-			// tool_group = '<g transform="translate(0,100)">';
-			// tool_group = '<g>';
+			if ( $('tool-svg') ) {
+				tool_svg = $('tool-svg').innerHTML
+				// wrap tools svg inside group that accounts for margin
+				tool_group = '<g transform="translate(14,100)">';
+			} else {
+				tool_svg = Paper.get_all()[0].toSVG();
+				tool_group = '<g transform="translate(7,15)">';
+			}
 
 			svg = svg.replace('</svg>', tool_group + tool_svg + '</g></svg>');
 		}

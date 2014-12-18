@@ -357,7 +357,7 @@ extend(Chart.prototype, {
 		var tools = ToolsManager.get_all();
 
 		if ( tools.length > 0 ) {
-			if ( $('tool-svg') ) {
+			if ( $('tool-svg') && !Browser.ie ) {
 				tool_svg = $('tool-svg').innerHTML
 				// wrap tools svg inside group that accounts for margin
 				tool_group = '<g transform="translate(14,100)">';

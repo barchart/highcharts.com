@@ -6,7 +6,7 @@
 defaultPlotOptions.ohlc = merge(defaultPlotOptions.column, {
 	lineWidth: 1,
 	tooltip: {
-		pointFormat: '<span style="color:{series.color};font-weight:bold">{series.name}</span><br/>' +
+		pointFormat: '<span style="color:{point.color}">\u25CF</span> <b> {series.name}</b><br/>' + // docs
 			'Open: {point.open}<br/>' +
 			'High: {point.high}<br/>' +
 			'Low: {point.low}<br/>' +
@@ -53,7 +53,7 @@ var OHLCSeries = extendClass(seriesTypes.column, {
 		seriesDownPointAttr.select[upColorProp] = stateOptions.select.upColor || upColor;
 
 		each(series.points, function (point) {
-			if (point.open < point.close) {
+			if (point.open < point.close && !point.options.color) {
 				point.pointAttr = seriesDownPointAttr;
 			}
 		});
@@ -102,11 +102,11 @@ var OHLCSeries = extendClass(seriesTypes.column, {
 			if (point.plotY !== UNDEFINED) {
 
 				graphic = point.graphic;
-				pointAttr = point.pointAttr[point.selected ? 'selected' : ''];
+				pointAttr = point.pointAttr[point.selected ? 'selected' : ''] || series.pointAttr[NORMAL_STATE];
 
 				// crisp vector coordinates
 				crispCorr = (pointAttr['stroke-width'] % 2) / 2;
-				crispX = mathRound(point.plotX) + crispCorr;
+				crispX = mathRound(point.plotX) - crispCorr;  // #2596
 				halfWidth = mathRound(point.shapeArgs.width / 2);
 
 				// the vertical stem
@@ -145,7 +145,9 @@ var OHLCSeries = extendClass(seriesTypes.column, {
 
 				// create and/or update the graphic
 				if (graphic) {
-					graphic.animate({ d: path });
+					graphic
+						.attr(pointAttr) // #3897
+						.animate({ d: path });
 				} else {
 					point.graphic = chart.renderer.path(path)
 						.attr(pointAttr)

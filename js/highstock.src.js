@@ -6198,6 +6198,38 @@ Highcharts.PlotLineOrBand.prototype = {
 			from = log2lin(from);
 			to = log2lin(to);
 			value = log2lin(value);
+		}	
+
+		// Update plotLine to latest value on current chart
+		if ( options.update ) {
+			var yData = axis.series[0].processedYData,
+				last = yData[yData.length - 1];
+
+			if ( last ) {
+				if ( last.length === 4 && last[3] ) {
+					options.label.text = value = last[3];
+				} else {
+					options.label.text = value = last;
+				}
+
+				if ( label ) {
+					label.element.innerHTML = value;
+				}
+			}
+		}
+
+		// If base series is percent change
+		if ( axis.series[0].modifyValue ) {
+			var seriesIndex = options.series ? options.series : 0,
+				compareValue = axis.series[seriesIndex].compareValue;
+
+			value = 100 * ( value / compareValue ) - 100;
+
+			options.label.text = Math.round( value * 100 ) / 100 + '%';
+
+			if ( label ) {
+				label.element.innerHTML = options.label.text;
+			}
 		}
 
 		// plot line
@@ -6227,6 +6259,8 @@ Highcharts.PlotLineOrBand.prototype = {
 		if (defined(zIndex)) {
 			attribs.zIndex = zIndex;
 		}
+
+
 
 		// common for lines and bands
 		if (svgElem) {
@@ -7807,6 +7841,10 @@ Axis.prototype = {
 		this.height = height;
 		this.bottom = chart.chartHeight - height - top;
 		this.right = chart.chartWidth - width - left;
+
+		if ( chart.options.chart.plotBorderMargin ) {
+			this.right -= chart.options.chart.plotBorderMargin;
+		}
 
 		// Direction agnostic properties
 		this.len = mathMax(horiz ? width : height, 0); // mathMax fixes #905
@@ -11823,6 +11861,8 @@ Chart.prototype = {
 		chartWidth = chart.chartWidth;
 		chartHeight = chart.chartHeight;
 
+		chartWidth += chart.options.chart.plotBorderMargin || 0;
+
 		// create the inner container
 		chart.container = container = createElement(DIV, {
 				className: PREFIX + 'container' +
@@ -12137,6 +12177,7 @@ Chart.prototype = {
 			plotBackgroundColor = optionsChart.plotBackgroundColor,
 			plotBackgroundImage = optionsChart.plotBackgroundImage,
 			plotBorderWidth = optionsChart.plotBorderWidth || 0,
+			plotBorderMargin = optionsChart.plotBorderMargin || 0,
 			mgn,
 			bgAttr,
 			plotLeft = chart.plotLeft,
@@ -12210,7 +12251,7 @@ Chart.prototype = {
 		// Plot area border
 		if (plotBorderWidth) {
 			if (!plotBorder) {
-				chart.plotBorder = renderer.rect(plotLeft, plotTop, plotWidth, plotHeight, 0, -plotBorderWidth)
+				chart.plotBorder = renderer.rect(plotLeft, plotTop, plotWidth + plotBorderMargin, plotHeight, 0, -plotBorderWidth)
 					.attr({
 						stroke: optionsChart.plotBorderColor,
 						'stroke-width': plotBorderWidth,
@@ -12220,7 +12261,7 @@ Chart.prototype = {
 					.add();
 			} else {
 				plotBorder.animate(
-					plotBorder.crisp({ x: plotLeft, y: plotTop, width: plotWidth, height: plotHeight, strokeWidth: -plotBorderWidth }) //#3282 plotBorder should be negative
+					plotBorder.crisp({ x: plotLeft, y: plotTop, width: plotWidth + plotBorderMargin, height: plotHeight, strokeWidth: -plotBorderWidth }) //#3282 plotBorder should be negative
 				);
 			}
 		}
@@ -13606,6 +13647,7 @@ Series.prototype = {
 				}
 			}
 		}
+
 		this.dataMin = pick(dataMin, arrayMin(activeYData));
 		this.dataMax = pick(dataMax, arrayMax(activeYData));
 	},
@@ -13681,15 +13723,21 @@ Series.prototype = {
 
 			}
 
+			// general hook, used for Highstock compare mode
+			if (hasModifyValue) {
+				yValue = series.modifyValue(yValue, point);
+
+				if ( series.type === 'ohlc') {
+					yBottom = series.modifyValue(yBottom);
+
+					series.modifyValue( [point.open, point.high, point.low, point.close], point );
+				}
+			}
+
 			// Set translated yBottom or remove it
 			point.yBottom = defined(yBottom) ?
 				yAxis.translate(yBottom, 0, 1, 0, 1) :
 				null;
-
-			// general hook, used for Highstock compare mode
-			if (hasModifyValue) {
-				yValue = series.modifyValue(yValue, point);
-			}
 
 			// Set the the plotY value, reset it for redraws
 			point.plotY = plotY = (typeof yValue === 'number' && yValue !== Infinity) ?
@@ -20061,18 +20109,23 @@ var OHLCSeries = extendClass(seriesTypes.column, {
 	 */
 	translate: function () {
 		var series = this,
-			yAxis = series.yAxis;
+			yAxis = series.yAxis,
+			open,
+			close;
 
 		seriesTypes.column.prototype.translate.apply(series);
 
 		// do the translation
 		each(series.points, function (point) {
+			open = series.modifyValue ? series.modifyValue(point.open) : point.open;
+			close = series.modifyValue ? series.modifyValue(point.close) : point.close;
+
 			// the graphics
-			if (point.open !== null) {
-				point.plotOpen = yAxis.translate(point.open, 0, 1, 0, 1);
+			if (open !== null) {
+				point.plotOpen = yAxis.translate(open, 0, 1, 0, 1);
 			}
-			if (point.close !== null) {
-				point.plotClose = yAxis.translate(point.close, 0, 1, 0, 1);
+			if (close !== null) {
+				point.plotClose = yAxis.translate(close, 0, 1, 0, 1);
 			}
 
 		});
@@ -20085,6 +20138,7 @@ var OHLCSeries = extendClass(seriesTypes.column, {
 		var series = this,
 			points = series.points,
 			chart = series.chart,
+			options = series.options,
 			pointAttr,
 			plotOpen,
 			plotClose,
@@ -20092,11 +20146,22 @@ var OHLCSeries = extendClass(seriesTypes.column, {
 			halfWidth,
 			path,
 			graphic,
-			crispX;
+			crispX,
+			min,
+			max;
 
 
 		each(points, function (point) {
 			if (point.plotY !== UNDEFINED) {
+
+				// Store min/max point objects for after each callback
+				if ( point.low === series.dataMin ) {
+					min = point;
+				}
+
+				if ( point.high === series.dataMax ) {
+					max = point;
+				}
 
 				graphic = point.graphic;
 				pointAttr = point.pointAttr[point.selected ? 'selected' : ''] || series.pointAttr[NORMAL_STATE];
@@ -20140,6 +20205,7 @@ var OHLCSeries = extendClass(seriesTypes.column, {
 					);
 				}
 
+
 				// create and/or update the graphic
 				if (graphic) {
 					graphic
@@ -20153,9 +20219,35 @@ var OHLCSeries = extendClass(seriesTypes.column, {
 
 			}
 
-
 		});
 
+		if ( min && options.arc_down ) {
+			// Destroy existing arc
+			if ( series.arc_down ) {
+				series.arc_down.destroy();
+			}
+
+			series.arc_down = chart.renderer.image( options.arc_down,
+				min.plotX - 5,
+				min.yBottom,
+				10,
+				10
+			).add(series.group);
+		}
+
+		if ( max && options.arc_up ) {
+			// Destroy existing arc
+			if ( series.arc_up ) {
+				series.arc_up.destroy();
+			}
+
+			series.arc_up = chart.renderer.image( options.arc_up,
+				max.plotX - 5,
+				max.plotY - 10,
+				10,
+				10
+			).add(series.group);
+		}
 	},
 
 	/**
@@ -23032,18 +23124,38 @@ seriesProto.setCompare = function (compare) {
 
 	// Set or unset the modifyValue method
 	this.modifyValue = (compare === 'value' || compare === 'percent') ? function (value, point) {
-		var compareValue = this.compareValue;
+		var compareValue = this.compareValue,
+			returnValue = [];
 		
 		if (value !== UNDEFINED) { // #2601
 
-			// get the modified value
-			value = compare === 'value' ? 
-				value - compareValue : // compare value
-				value = 100 * (value / compareValue) - 100; // compare percent
+			if ( this.type === 'ohlc' ) {
+				if ( isArray(value) ) {
+					for (var i = 0; i < value.length; i++) {
+						returnValue.push( 100 * (value[i] / compareValue ) - 100 );
+					};
+				} else {
+					value = 100 * (value / compareValue) - 100;
+				}
+			} else {
+				// get the modified value
+				value = compare === 'value' ? 
+					value - compareValue : // compare value
+					value = 100 * (value / compareValue) - 100; // compare percent
+			}
 				
 			// record for tooltip etc.
 			if (point) {
-				point.change = value;
+				if ( this.type === 'ohlc' && returnValue.length ) {
+					point.change = {
+						open : returnValue[0],
+						high : returnValue[1],
+						low  : returnValue[2],
+						close: returnValue[3]
+					}
+				} else {
+					point.change = value;
+				}
 			}
 			
 		}
@@ -23081,8 +23193,8 @@ seriesProto.processData = function () {
 		
 		// find the first value for comparison
 		for (; i < length; i++) {
-			if (typeof processedYData[i] === NUMBER && processedXData[i] >= series.xAxis.min) {
-				series.compareValue = processedYData[i];
+			if (processedXData[i] >= series.xAxis.min) {
+				series.compareValue = typeof processedYData[i] === NUMBER ? processedYData[i] : processedYData[i][3];
 				break;
 			}
 		}

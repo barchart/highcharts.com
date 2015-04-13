@@ -6165,7 +6165,7 @@ PlotLineOrBand.prototype = {
 			var yData = axis.series[0].processedYData;
 
 			// The last point is usually off to the right of the chart
-			last = yData[yData.length - 2];
+			last = yData[yData.length - 1];
 
 			if ( last ) {
 				// OHLC like chart

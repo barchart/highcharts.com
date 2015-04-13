@@ -6171,12 +6171,12 @@ PlotLineOrBand.prototype = {
 				// OHLC like chart
 				if ( last.length === 4 ) {
 					if ( last[3] ) {
-						options.label.text = last[3];
+						options.label.text = Pane.decimal_to_string( last[3] );
 						value = last[3];
 					}
 				// Line/Area chart
 				} else {
-					options.label.text = last;
+					options.label.text = Pane.decimal_to_string( last );
 					value = last;
 				}
 
